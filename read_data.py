@@ -3,14 +3,15 @@ import numpy as np
 from PIL import Image
 import pickle
 
-with open("Tree.bin", "rb") as binary_file:
+with open("data/Tree.bin", "rb") as binary_file:
     data = pickle.load(binary_file)
 
-state = data['state']
+action = data['action']
+print(len(action))
 
-array = np.array(state[90])
+# array = np.array(state[90])
 
-array = array.astype(np.uint8)
+# array = array.astype(np.uint8)
 
-image = Image.fromarray(array)
-image.show()
+# image = Image.fromarray(array)
+# image.show()
