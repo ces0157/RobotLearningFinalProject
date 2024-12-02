@@ -53,14 +53,21 @@ def interact(expert_model, env, observations, actions, learner, transform):
             observation = transform(observation)
             _, expert_action = torch.max(expert_model(observation), 1)
 
+            _, learner_action = torch.max(learner(observation), 1)
+
             observation, reward, terminated, truncated, _info = env.step(expert_action)
 
 
             observations.append(observation)
             actions.append(expert_action)
 
+            observations.append(observation)
+            actions.append(learner_action)
+
             if terminated:
                 break
+
+        
         
 
 
