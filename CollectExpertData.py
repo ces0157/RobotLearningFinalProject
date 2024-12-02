@@ -51,8 +51,7 @@ if(env_name == "Cave"):
     action_space['+y'] = 5
     action_space['-y'] = 6
 
-counter = 0
-for t in range(1):
+for t in range(300):
     
     user_input = input("What action should the agent take type something and press Enter: ")
     
@@ -70,20 +69,27 @@ for t in range(1):
     data['next_state'].append(observation.tolist())
     data['reward'].append(reward)
 
-    if(counter > 5):
-        break
+    print(t)
     
     #only used for the Cave environment
     if reward > 24:
-        if(counter == 20):
-            break
-        counter += 1
-        observation, info = env.reset()
-        continue
+       break
+
 
 env.close()
 
-with h5py.File('expert_data/Cave4.h5', 'w') as f:
+
+#after one expert collection, copy the data multiple times to make the expert consistent (at leat for the cave)
+for i in range(2):
+    print(i)
+    data['state'] = np.concatenate((data['state'], data['state']), axis=0)
+    data['action'] = np.concatenate((data['action'], data['action']), axis=0)
+    data['next_state'] = np.concatenate((data['next_state'], data['next_state']), axis=0)
+    data['reward'] = np.concatenate((data['reward'], data['reward']), axis=0)
+
+
+print("Saving data")
+with h5py.File('expert_data/ExpertFinal2.h5', 'w') as f:
     f.create_dataset('states', data= data['state'], compression='gzip', compression_opts=9)
     f.create_dataset('actions', data=data['action'])
     f.create_dataset('next_states', data=data['next_state'], compression='gzip', compression_opts=9)

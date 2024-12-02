@@ -63,19 +63,23 @@ def load_data(env_type):
     elif env_type == "Cave":
         #The caves are all the same just different dataruns
         print("Loading expert ...")
-        with h5py.File('expert_data/Cave1.h5', 'r') as f:
-            observations1 = f['states'][:]
-            actions1 = f['actions'][:]
-        with h5py.File('expert_data/Cave2.h5', 'r') as f:
-            observations2 = f['states'][:]
-            actions2 = f['actions'][:]
-        with h5py.File('expert_data/Cave3.h5', 'r') as f:
-            observations3 = f['states'][:]
-            actions3 = f['actions'][:]
+        # with h5py.File('expert_data/Cave1.h5', 'r') as f:
+        #     observations1 = f['states'][:]
+        #     actions1 = f['actions'][:]
+        # with h5py.File('expert_data/Cave2.h5', 'r') as f:
+        #     observations2 = f['states'][:]
+        #     actions2 = f['actions'][:]
+        # with h5py.File('expert_data/Cave3.h5', 'r') as f:
+        #     observations3 = f['states'][:]
+        #     actions3 = f['actions'][:]
+        with h5py.File('expert_data/ExpertFinal.h5', 'r') as f:
+            observations = f['states'][:]
+            actions = f['actions'][:]
+
         
 
-        observations = np.concatenate((observations1, observations2, observations3), axis=0)
-        actions = np.concatenate((actions1, actions2, actions3), axis=0)
+        #observations = np.concatenate((observations1, observations2, observations3, observations4), axis=0)
+        #actions = np.concatenate((actions1, actions2, actions3, actions4), axis=0)
          
        
     else:
@@ -196,7 +200,7 @@ def eval(model, criterion, val_loader):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
         
-        running_loss / len(val_loader)
+        running_loss = running_loss / len(val_loader)
         val_accuracy = correct / total
 
         print(f"Validation Loss: {running_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}")

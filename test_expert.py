@@ -37,8 +37,6 @@ def main():
     observation, info = env.reset()
    
     
-    
-    
 
     for i in range(2000):  
         observation = np.array(observation, dtype=np.uint8)
