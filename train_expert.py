@@ -8,6 +8,8 @@ import torch.optim as optim
 import pickle
 from tqdm import tqdm
 import numpy as np
+import os
+import h5py
 
 
 class ExpertDataset(Dataset):
@@ -33,7 +35,7 @@ class ExpertDataset(Dataset):
 
 
 class ExpertModel(nn.Module):
-    def __init__(self):
+    def __init__(self, num_actions=0):
         super(ExpertModel, self).__init__()
 
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1)
@@ -41,7 +43,7 @@ class ExpertModel(nn.Module):
         self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
         self.pool = nn.MaxPool2d(2, 2)
         self.fc1 = nn.Linear(128 * 28 * 28, 128)  # 128 channels, 28x28 after pooling
-        self.fc2 = nn.Linear(128, 8)  # 7 possible actions
+        self.fc2 = nn.Linear(128, num_actions)  #number of possible actions
 
     def forward(self, x):
         x = self.pool(nn.ReLU()(self.conv1(x)))
@@ -53,17 +55,32 @@ class ExpertModel(nn.Module):
         return x
 
 
+def load_data(env_type):
+    observations = None
+    actions = None
+    if env_type == "Tree":
+        pass
+    elif env_type == "Cave":
+        #The caves are all the same just different dataruns
+        print("Loading expert ...")
+        with h5py.File('expert_data/Cave1.h5', 'r') as f:
+            observations1 = f['states'][:]
+            actions1 = f['actions'][:]
+        with h5py.File('expert_data/Cave2.h5', 'r') as f:
+            observations2 = f['states'][:]
+            actions2 = f['actions'][:]
+        with h5py.File('expert_data/Cave3.h5', 'r') as f:
+            observations3 = f['states'][:]
+            actions3 = f['actions'][:]
+        
 
-
-
-def train():
-    with open("data/Tree.bin", "rb") as binary_file:
-        data = pickle.load(binary_file)
-    
-    print("Loading observations...")
-    observations = data["state"]
-    print("Loading actions...")
-    actions = data["action"]
+        observations = np.concatenate((observations1, observations2, observations3), axis=0)
+        actions = np.concatenate((actions1, actions2, actions3), axis=0)
+         
+       
+    else:
+        print("Invalid environment type")
+        return
 
     transform = transforms.Compose([
         transforms.Resize((224, 224)),  # Resize to 224x224 pixels for better efficiency
@@ -71,22 +88,49 @@ def train():
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
 
-    print("Making dataset...")
-
     dataset = ExpertDataset(observations, actions, transform)
-    train_loader = DataLoader(dataset, batch_size=32, shuffle=True)
 
-    # for input, labels in train_loader:
-    #     print("Hello there")
+    #shuffle the data and split into training and validation sets
+    print("Making train test splits ...")
+    indices = torch.randperm(len(dataset)).tolist()
+    shuffled_data = [dataset[i] for i in indices]
+    train_size = int(0.75 * len(shuffled_data))
 
-    
+
+    train_data = shuffled_data[:train_size]
+    val_data = shuffled_data[train_size:]
+
+    train_loader = DataLoader(train_data, batch_size=32, shuffle=False)
+    val_loader = DataLoader(val_data, batch_size=32, shuffle=False)
+    print("Done making data ...")
+
+    return train_loader, val_loader
+
+
+def init_model(name):
+    num_actions = 0
+    if name == "Tree":
+        num_actions = 8
+    elif name == "Cave":
+        num_actions = 7
+    else:
+        print("Invalid environment type")
+        return
+
     print("initalizing model")
-    model = ExpertModel()
+    model = ExpertModel(num_actions)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
 
-    num_epochs = 10
+    return model, criterion, optimizer
+
+
+
+
+def train(env_type, model, criterion, optimizer, train_loader):
+    num_epochs = 20
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
     model.to(device)
 
     print("Starting training")
@@ -97,39 +141,82 @@ def train():
         correct = 0
         total = 0
 
-        with tqdm(train_loader, unit='batch', desc=f"Epoch {epoch+1}/{num_epochs}") as tepoch:
-            for inputs, labels in train_loader:
-                inputs, labels = inputs.to(device), labels.to(device)
+        
+        for inputs, labels in train_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
 
-                # Zero the gradients
-                optimizer.zero_grad()
+            # Zero the gradients
+            optimizer.zero_grad()
 
-                # Forward pass
-                outputs = model(inputs)
+            # Forward pass
+            outputs = model(inputs)
 
-                # Compute the loss
-                loss = criterion(outputs, labels)
+            # Compute the loss
+            loss = criterion(outputs, labels)
 
-                # Backward pass and optimization
-                loss.backward()
-                optimizer.step()
+            # Backward pass and optimization
+            loss.backward()
+            optimizer.step()
 
-                # Statistics
-                running_loss += loss.item()
-                _, predicted = torch.max(outputs, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
 
-                tepoch.set_postfix(loss=running_loss / (total / 32), accuracy=correct / total)
+            # Statistics
+            running_loss += loss.item()
+            _, predicted = torch.max(outputs, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
 
 
         epoch_loss = running_loss / len(train_loader)
         epoch_acc = correct / total
-
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}, Accuracy: {epoch_acc:.4f}")
-        torch.save(model.state_dict(), 'Expert_model.pth')
+
+        #print(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}, Accuracy: {epoch_acc:.4f}")
+        torch.save(model.state_dict(), 'Expert_model_' + env_type + '.pth')
+    return model
+    
+
+def eval(model, criterion, val_loader):
+    model.eval()  # Set model to evaluation mode
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+
+    running_loss = 0.0
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        for inputs, labels in val_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            output = model(inputs)
+            loss = criterion(output, labels)
+
+            running_loss += loss.item()
+            _, predicted = torch.max(output, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+        
+        running_loss / len(val_loader)
+        val_accuracy = correct / total
+
+        print(f"Validation Loss: {running_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}")
+
+
+def main():
+    env = input("What environment should we train for (Tree, Cave)? ")
+    
+    train_loader, val_loader = load_data(env)
+    model, criterion, optimizer = init_model(env)
+    # if(os.path.exists('Expert_model_' + env + '.pth')):
+    #     #model.load_state_dict(torch.load('Expert_model_' + env + '.pth'))
+    #     pass
+    
+    model = train(env, model, criterion, optimizer, train_loader)
+    
+    eval(model, criterion, val_loader)
 
     
 
+if __name__ == "__main__":
+    main()
 
-train()

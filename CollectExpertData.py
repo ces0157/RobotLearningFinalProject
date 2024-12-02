@@ -4,6 +4,7 @@ import gymnasium as gym
 import craftium
 import json
 import pickle
+import h5py
 
 
 
@@ -12,13 +13,12 @@ data['state'] = []
 data['next_state'] = []
 data['reward'] = []
 data['action'] = []
-env_name = input("What environment should the agent play in? ")
+env_name = input("What environment should the agent play in (Tree, Cave)? ")
 action_space = dict()
-filename = env_name + ".bin"
 
 
 if(env_name == "Tree"):
-    env = gym.make("Craftium/ChopTree-v0", render_mode = "human", obs_width = 512, obs_height = 512)
+    env = gym.make("Craftium/ChopTree-v0", render_mode = "human", obs_width = 640, obs_height = 360)
     observation, info = env.reset()
 
     #do nothing
@@ -52,7 +52,7 @@ if(env_name == "Cave"):
     action_space['-y'] = 6
 
 counter = 0
-for t in range(100):
+for t in range(1):
     
     user_input = input("What action should the agent take type something and press Enter: ")
     
@@ -75,7 +75,7 @@ for t in range(100):
     
     #only used for the Cave environment
     if reward > 24:
-        if(counter == 5):
+        if(counter == 20):
             break
         counter += 1
         observation, info = env.reset()
@@ -83,8 +83,11 @@ for t in range(100):
 
 env.close()
 
-with open(filename, "wb") as binary_file:
-    pickle.dump(data, binary_file)
+with h5py.File('expert_data/Cave4.h5', 'w') as f:
+    f.create_dataset('states', data= data['state'], compression='gzip', compression_opts=9)
+    f.create_dataset('actions', data=data['action'])
+    f.create_dataset('next_states', data=data['next_state'], compression='gzip', compression_opts=9)
+    f.create_dataset('reward', data=data['reward'])
    
     
 
