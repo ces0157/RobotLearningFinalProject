@@ -12,13 +12,13 @@ import os
 
 def main():
     env_name = input("What environment should we Test the Expert on  (Tree, Cave)? ")
-    env = None
     if(env_name == "Cave"):
         model = ExpertModel(7)
-        if(os.path.exists('Expert_model_' + env_name + '.pth')):
-            model.load_state_dict(torch.load('Expert_model_' + env_name + '.pth'))
+        if os.path.exists('Learner_model_Cave2.pth'):
+            model.load_state_dict(torch.load('Learner_model_Cave2.pth', weights_only=True))
             model.eval()
             env = gym.make("Craftium/Speleo-v0", render_mode = "human", obs_width = 512, obs_height = 512)
+    
         else:
             print("No model found")
             return
@@ -35,21 +35,21 @@ def main():
         ])
     
     observation, info = env.reset()
-   
-    
 
     for i in range(2000):  
-        observation = np.array(observation, dtype=np.uint8)
+        observation = np.array(observation)
         observation = Image.fromarray(observation)
+        
         observation = transform(observation)
+        
         _, action = torch.max(model(observation), 1)
         action = action[0].item()
-        print(action)
+
+        #print(action_space[action])
+        #user_input = input("Press Enter to continue")
+
         observation, reward, terminated, truncated, _info = env.step(action)
         
-        env.render()
-        if terminated:
-            observation = env.reset()
     env.close()
 
 

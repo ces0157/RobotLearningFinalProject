@@ -22,10 +22,11 @@ class ExpertDataset(Dataset):
         return len(self.observations)
     
     def __getitem__(self, index):
-        state = np.array(self.observations[index])
-        state = state.astype(np.uint8)
+        state = self.observations[index]
+        #state = np.array(self.observations[index])
+        # state = state.astype(np.uint8)
 
-        state = Image.fromarray(state)
+        #state = Image.fromarray(state)
         action = self.actions[index]
 
         if self.transform:
@@ -69,19 +70,18 @@ def load_data(env_type):
         # with h5py.File('expert_data/Cave2.h5', 'r') as f:
         #     observations2 = f['states'][:]
         #     actions2 = f['actions'][:]
-        # with h5py.File('expert_data/Cave3.h5', 'r') as f:
-        #     observations3 = f['states'][:]
-        #     actions3 = f['actions'][:]
-        with h5py.File('expert_data/ExpertFinal.h5', 'r') as f:
-            observations = f['states'][:]
-            actions = f['actions'][:]
+        with h5py.File('expert_data/Copy.h5', 'r') as f:
+            observations3 = f['states'][:]
+            actions3 = f['actions'][:]
+        with h5py.File('expert_data/500Run.h5', 'r') as f:
+            observations4 = f['states'][:]
+            actions4 = f['actions'][:]
 
         
 
-        #observations = np.concatenate((observations1, observations2, observations3, observations4), axis=0)
-        #actions = np.concatenate((actions1, actions2, actions3, actions4), axis=0)
+        observations = np.concatenate((observations3, observations4), axis=0)
+        actions = np.concatenate((actions3, actions4), axis=0)
          
-       
     else:
         print("Invalid environment type")
         return
@@ -92,20 +92,23 @@ def load_data(env_type):
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
 
+    print(len(observations))
+    print(len(actions))
     dataset = ExpertDataset(observations, actions, transform)
 
     #shuffle the data and split into training and validation sets
     print("Making train test splits ...")
     indices = torch.randperm(len(dataset)).tolist()
+    
     shuffled_data = [dataset[i] for i in indices]
-    train_size = int(0.75 * len(shuffled_data))
+    train_size = int(0.75 * len(dataset))
 
 
     train_data = shuffled_data[:train_size]
     val_data = shuffled_data[train_size:]
 
-    train_loader = DataLoader(train_data, batch_size=32, shuffle=False)
-    val_loader = DataLoader(val_data, batch_size=32, shuffle=False)
+    train_loader = DataLoader(train_data, batch_size=256, shuffle=False)
+    val_loader = DataLoader(val_data, batch_size=256, shuffle=False)
     print("Done making data ...")
 
     return train_loader, val_loader
@@ -132,7 +135,7 @@ def init_model(name):
 
 
 def train(env_type, model, criterion, optimizer, train_loader):
-    num_epochs = 20
+    num_epochs = 100
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     model.to(device)

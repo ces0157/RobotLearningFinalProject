@@ -5,6 +5,7 @@ import craftium
 import json
 import pickle
 import h5py
+from PIL import Image
 
 
 
@@ -18,7 +19,7 @@ action_space = dict()
 
 
 if(env_name == "Tree"):
-    env = gym.make("Craftium/ChopTree-v0", render_mode = "human", obs_width = 640, obs_height = 360)
+    env = gym.make("Craftium/ChopTree-v0", render_mode = "rgb_array")
     observation, info = env.reset()
 
     #do nothing
@@ -37,7 +38,12 @@ if(env_name == "Tree"):
     action_space['-y'] = 7
 
 if(env_name == "Cave"):
-    env = gym.make("Craftium/Speleo-v0", render_mode = "human", obs_width = 512, obs_height = 512)
+    craftium_kwargs = dict(
+            rgb_observations=True,
+            gray_scale_keepdim=False,
+        )
+    env = gym.make("Craftium/Speleo-v0", render_mode = "human", **craftium_kwargs, obs_width = 512, obs_height = 512)
+    
     observation, info = env.reset()
 
     action_space['nop'] = 0
@@ -51,25 +57,32 @@ if(env_name == "Cave"):
     action_space['+y'] = 5
     action_space['-y'] = 6
 
-for t in range(300):
+
+observtation = np.array(observation)
+observation = Image.fromarray(observation)
+for t in range(500):
     
     user_input = input("What action should the agent take type something and press Enter: ")
-    
     if user_input not in action_space:
         print("Invalid action")
         continue
-
+    
     action = action_space[user_input]
     
-    data['state'].append(observation.tolist())
+
+
+    data['state'].append(observation)
     data['action'].append(action)
-    
+
     observation, reward, terminated, truncated, _info = env.step(action)
+    observtation = np.array(observation)
+
         
-    data['next_state'].append(observation.tolist())
+    data['next_state'].append(observation)
     data['reward'].append(reward)
 
     print(t)
+
     
     #only used for the Cave environment
     if reward > 24:
@@ -80,7 +93,7 @@ env.close()
 
 
 #after one expert collection, copy the data multiple times to make the expert consistent (at leat for the cave)
-for i in range(2):
+for i in range(3):
     print(i)
     data['state'] = np.concatenate((data['state'], data['state']), axis=0)
     data['action'] = np.concatenate((data['action'], data['action']), axis=0)
@@ -89,7 +102,7 @@ for i in range(2):
 
 
 print("Saving data")
-with h5py.File('expert_data/ExpertFinal2.h5', 'w') as f:
+with h5py.File('expert_data/Copy.h5', 'w') as f:
     f.create_dataset('states', data= data['state'], compression='gzip', compression_opts=9)
     f.create_dataset('actions', data=data['action'])
     f.create_dataset('next_states', data=data['next_state'], compression='gzip', compression_opts=9)
