@@ -5,8 +5,8 @@ import craftium
 import torch
 from torchvision import transforms
 from PIL import Image
-from train_expert import ExpertModel
-from train_expert import ExpertDataset
+from train_bc import BcModel
+from train_bc import ImageDataset
 from torch.utils.data import TensorDataset, DataLoader
 import os
 
@@ -45,29 +45,25 @@ def interact(env, learner, observations, actions, action_space, transform):
     for episode in range(20):
         obs, info = env.reset()
         for i in range(40):
-            obs = np.array(obs)
-            
-            obs = Image.fromarray(obs)
-
-            obs.show()
+            observation = np.array(obs)
+            obs = Image.fromarray(observation)
             obs = transform(obs)
             
-            
-            #get the action that the expert would take in this situation
+            _, learner_action = torch.max(learner(obs), 1)
+            print("learner_action",learner_action)
+
+            # get the action that the expert would take in this situation
             user_input = input("What action should the agent take type something and press Enter: ")
             if user_input in action_space:
                 expert_action = action_space[user_input]
                 actions.append(expert_action)
-                observations.append(obs)
+                observations.append(observation)
             
             else:
                 print("Invalid action")
     
-            _, learner_action = torch.max(learner(obs), 1)
-            #print(learner_action)
             
             
-
             obs, reward, terminated, truncated, _info = env.step(learner_action)
             print(i)
             if terminated:
@@ -85,7 +81,7 @@ def interact(env, learner, observations, actions, action_space, transform):
         
 def train(learner, observations, actions, transform):
     
-    dataset = ExpertDataset(observations, actions, transform = None)
+    dataset = ImageDataset(observations, actions, transform)
     dataloader = DataLoader(dataset, batch_size=256, shuffle=True)
     learner.train()
     optimizer = optim.Adam(learner.parameters(), lr=0.0001, weight_decay=1e-5)
@@ -111,7 +107,7 @@ def evaluate(env, learner, transform):
     total_reward = 0
     obs, info = env.reset()
     terminated = False
-    for j in range(2000):
+    for j in range(1000):
         obs = np.array(obs)
         obs = Image.fromarray(obs)
         obs = transform(obs)
@@ -129,19 +125,49 @@ def evaluate(env, learner, transform):
 def main():
     env_name = input("What environment should we Test the Expert on  (Tree, Cave)? ")
     action_space = dict()
+    if(env_name == "Tree"):
+        pass
+        # learner = Learner(8)
+        # expert = ExpertModel(8)
+        # if os.path.exists('Expert_model_Tree.pth'):
+        #     expert.load_state_dict(torch.load('Expert_model_Tree.pth', weights_only=True))
+        #     expert.eval()
+        #     env = gym.make("Craftium/ChopTree-v0", render_mode = "human", obs_width = 512, obs_height = 512)
+        # else:
+        #     print("No model found")
+        #     return
 
-    if(env_name == "Cave"):
-        #expert_model = ExpertModel(7)
-        #expert_model.load_state_dict(torch.load('Expert_model_' + env_name + '.pth'))
-        #expert_model.eval()
+        # env = gym.make("Craftium/ChopTree-v0", render_mode = "human", obs_width = 512, obs_height = 512)
+
+        # #do nothing
+        # action_space['nop'] = 0
+        # #forward
+        # action_space['f'] = 1
+        # #jump
+        # action_space['j'] = 2
+        # #dig
+        # action_space['d'] = 3
+
+        # #mouse controls
+        # action_space['+x'] = 4
+        # action_space['-x'] = 5
+        # action_space['+y'] = 6
+        # action_space['-y'] = 7
+
+
+    elif(env_name == "Cave"):
+       
         learner = Learner(7)
+        
 
         #used for multiple test runs
-        #if os.path.exists('Learner_model_Cave2.pth'):
-        #learner.load_state_dict(torch.load('Learner_model_Cave2.pth', weights_only=True))
-        #learner.eval()
+        if os.path.exists('Great_model.pth'):
+            learner.load_state_dict(torch.load('Great_model.pth', weights_only=True))
+            learner.eval()
+        
         #print("Model Loaded")
-        env = gym.make("Craftium/Speleo-v0", render_mode = "human", obs_width = 512, obs_height = 512)
+        env = gym.make("Craftium/Speleo-v0", render_mode = "human", obs_width = 512, obs_height = 512, frameskip=2)
+        env.mouse_mov = .25
 
         action_space['nop'] = 0
         action_space['f'] = 1
