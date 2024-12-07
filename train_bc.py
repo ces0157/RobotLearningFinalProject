@@ -66,7 +66,10 @@ def load_data(env_type):
         with h5py.File('expert_data/CaveUpdated.h5', 'r') as f:
             observations = f['states'][:]
             actions = f['actions'][:]
-         
+    elif env_type == "Spider":
+        with h5py.File('expert_data/SpiderTest.h5', 'r') as f:
+            observations = f['states'][:]
+            actions = f['actions'][:]     
     else:
         print("Invalid environment type")
         return
@@ -105,6 +108,8 @@ def init_model(name):
         num_actions = 8
     elif name == "Cave":
         num_actions = 7
+    elif name == "Spider":
+        num_actions = 10
     else:
         print("Invalid environment type")
         return
@@ -195,7 +200,7 @@ def eval(model, criterion, val_loader):
 
 
 def main():
-    env = input("What environment should we train for (Tree, Cave)? ")
+    env = input("What environment should we train for (Tree, Cave, Spider)? ")
     
     train_loader, val_loader = load_data(env)
     model, criterion, optimizer = init_model(env)

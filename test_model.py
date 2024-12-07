@@ -12,7 +12,7 @@ import os
 
 
 def main():
-    env_name = input("What environment should we Test the Expert on  (Tree, Cave)? ")
+    env_name = input("What environment should we Test the Expert on  (Tree, Cave, Spider)? ")
     if(env_name == "Cave"):
         model = Learner(7)
         if os.path.exists('Great_model2.pth'):
@@ -30,6 +30,14 @@ def main():
             model.load_state_dict(torch.load('Expert_model_Tree.pth', weights_only=True))
             model.eval()
             env = gym.make("Craftium/ChopTree-v0", render_mode = "human", obs_width = 512, obs_height = 512)
+
+    elif(env_name == "Spider"):
+        model = ExpertModel(10)
+        if os.path.exists('Expert_model_Spider.pth'):
+            model.load_state_dict(torch.load('Expert_model_Spider.pth', weights_only=True))
+            model.eval()
+            env = gym.make("Craftium/SpidersAttack-v0", render_mode = "human", obs_width = 512, obs_height = 512)
+            
     else:
         print("Invalid Environment")
         return

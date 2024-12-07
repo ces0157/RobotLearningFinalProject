@@ -132,7 +132,7 @@ def evaluate(env, learner, transform):
 
 
 def main():
-    env_name = input("What environment should we Test the Expert on  (Tree, Cave)? ")
+    env_name = input("What environment should we Test the Expert on  (Tree, Cave, Spider)? ")
     action_space = dict()
     if(env_name == "Tree"):
         pass
@@ -189,6 +189,39 @@ def main():
         action_space['+y'] = 5
         action_space['-y'] = 6
 
+    
+    elif(env_name == "Spider"):
+        pass
+        # learner = Learner(10)
+        # expert = ExpertModel(10)
+        # if os.path.exists('Expert_model_Spider.pth'):
+        #     expert.load_state_dict(torch.load('Expert_model_Spider.pth', weights_only=True))
+        #     expert.eval()
+        #     env = gym.make("Craftium/SpidersAttack-v0", render_mode = "human", obs_width = 512, obs_height = 512)
+        # else:
+        #     print("No model found")
+        #     return
+
+        # env = gym.make("Craftium/SpidersAttack-v0", render_mode = "human", obs_width = 512, obs_height = 512)
+            
+        # #do nothing
+        # action_space['nop'] = 0
+        # #forward
+        # action_space['f'] = 1
+        # #left
+        # action_space['l'] = 2
+        # #right
+        # action_space['r'] = 3
+        # #jump
+        # action_space['j'] = 4
+        # #dig/attack
+        # action_space['d'] = 5
+
+        # #mouse controls
+        # action_space['+x'] = 6
+        # action_space['-x'] = 7
+        # action_space['+y'] = 8
+        # action_space['-y'] = 9
     else:
         print("Invalid Environment")
         return

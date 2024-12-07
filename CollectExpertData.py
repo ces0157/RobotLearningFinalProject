@@ -15,7 +15,7 @@ data['state'] = []
 data['next_state'] = []
 data['reward'] = []
 data['action'] = []
-env_name = input("What environment should the agent play in (Tree, Cave): ")
+env_name = input("What environment should the agent play in (Tree, Cave, Spider): ")
 action_space = dict()
 
 
@@ -72,7 +72,30 @@ if(env_name == "Cave"):
     action_space['+y'] = 5
     action_space['-y'] = 6 
 
+if(env_name == "Spider"):
+    env = gym.make("Craftium/SpidersAttack-v0", render_mode = "human", obs_width = 512, obs_height = 512, frameskip=2)
+    env.mouse_mov = .25
 
+    observation, info = env.reset()
+    
+    #do nothing
+    action_space['nop'] = 0
+    #forward
+    action_space['f'] = 1
+    #left
+    action_space['l'] = 2
+    #right
+    action_space['r'] = 3
+    #jump
+    action_space['j'] = 4
+    #dig/attack
+    action_space['d'] = 5
+
+    #mouse controls
+    action_space['+x'] = 6
+    action_space['-x'] = 7
+    action_space['+y'] = 8
+    action_space['-y'] = 9
 
 
 observation = np.array(observation)
