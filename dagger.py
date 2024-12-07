@@ -23,22 +23,23 @@ class Learner(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
         self.pool = nn.MaxPool2d(2, 2)
-        self.fc1 = nn.Linear(128 * 28 * 28, 128)  # 128 channels, 28x28 after pooling
-        self.fc2 = nn.Linear(128, num_actions)  #number of possible actions
+        self.fc1 = nn.Linear(128 * 28 * 28, 128) 
+        self.fc2 = nn.Linear(128, num_actions) 
 
     def forward(self, x):
         x = self.pool(nn.ReLU()(self.conv1(x)))
         x = self.pool(nn.ReLU()(self.conv2(x)))
         x = self.pool(nn.ReLU()(self.conv3(x)))
-        x = x.view(-1, 128 * 28 * 28)  # Flatten for fully connected layer
+        x = x.view(-1, 128 * 28 * 28) 
         x = nn.ReLU()(self.fc1(x))
         x = self.fc2(x)
         return x
 
-#@param expert_model: the expert model that we are trying to mimic
 # @param env: the environment that the expert model is playing in
-# @param observations: the observations that the expert model has made
 # @param learner: the model that we are trying to train
+# @param observations: the observations that the expert model has made
+# @param actions: the actions that the expert mdeo will take
+# @param action_space: the possible actions that can be taken in the enviornemnt
 # @param transform: the transformation that we need to apply to the image before giving it to the model  
 def interact(env, learner, observations, actions, action_space, transform):
     best_reward = float('-inf')
@@ -78,7 +79,10 @@ def interact(env, learner, observations, actions, action_space, transform):
             torch.save(learner.state_dict(), 'Learner_model.pth')
     
  
-        
+# @param learner: the model that we are trying to train
+# @param observations: the observations that the expert model (i.e human in this case) has made
+# @param actions: the actions that the expert model has taken
+# @param transform: the transformation that we need to apply to the image      
 def train(learner, observations, actions, transform):
     
     dataset = ImageDataset(observations, actions, transform)
@@ -102,6 +106,10 @@ def train(learner, observations, actions, transform):
         print("Epoch: ", epoch, "Loss: ", running_loss)
 
 
+# @param env: the environment that the expert model is playing in
+# @param learner: the model that we are trying to train
+# @param transform: the transformation that we need to apply to the image
+# @return the total reward that the learner has received
 def evaluate(env, learner, transform):
     learner.eval()
     total_reward = 0
@@ -113,6 +121,7 @@ def evaluate(env, learner, transform):
         obs = transform(obs)
         with torch.no_grad():
              _, action = torch.max(learner(obs), 1)
+        
             
         obs, reward, terminated, truncated, _info = env.step(action)
         total_reward += reward
